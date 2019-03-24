@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: logn
+# key: logn
+# --
+console.log("$1 ", $1);

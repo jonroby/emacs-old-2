@@ -1,0 +1,20 @@
+settings are in offlineimaprc
+
+
+
+So I don't know ideal setup but here is how to do it:
+
+For some sort of syncing:
+offlineimap
+
+Then to see changes inside emacs (mu4e) run:
+mu index --maildir=~/.Mail
+
+
+Figure out why this works.
+
+checkout ~/.mail as well
+
+Hypothesis: mu4e runs mu index, but VERY slowly. Need to determine if this is true.
+
+And still sending emails has only worked one time. It happened right after shutting down thunderbird, but this may have been a coincidence.

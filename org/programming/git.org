@@ -1,0 +1,332 @@
+* What is Git?
+** Basics
+ At its core, git is a key value store.
+
+ The value = Data
+ The key = Hash of the data
+
+ You can use the key to retrieve the content
+
+** The Key - Sha1
+
+- Is a cryptographic hash function.
+- Given a piece of data, it produces a 40 digit hexadecimal number.
+- This value should always be the same if the given input is the same.
+
+** The value - blob
+
+Git stores the compressed data in a blob, along with metadata in a header.
+- The identifier `blob`
+- The size of the content
+- The \0 delimiter
+- content
+
+> echo 'Hello world' | git hash-object --stdin
+802992c4220de19a90767f3000a79a31b98d0df7
+
+Generating the SHA1 of the contents with metadata:
+
+> echo 'blob14 \0Hello, World!' | openssl sha1
+
+These are stored in a .git directory
+.git directory contains data about our repository.
+
+Where are blobs stored?
+
+But we're missing both filenames and directory structures
+
+Git stores this in a tree. It contains pointers (using SHA1) to blobs and other trees, and metadata:
+- type of pointer (blob or tree)
+- filename or directory name
+- mode (executable file, symbolic link, ...)
+
+tree <size>
+\0
+blob <hash> hello.text
+tree <hash> copies
+
+***  Other optimizations
+
+- Git objects are compressed
+- As files change, their contents remain mostly similar
+- Git optimizes for this by compressing these files together, into a Packfile.
+- The Packfile stores the object, and "deltas", or the differences between one version of the file and the next
+- Packfiles are generated when:
+  - You have too many objects, during garbage collection, or during a push to a remote
+
+** Commit
+A commit points to a tree. And contains metadata: author and committer, date, message and parent commit (one or more).
+
+The SHA1 of the commit is the hash of all this information.
+
+fae12...
+commit size
+tree    <hash>
+parent  <hash>
+author  Nina
+message "Initial commit"
+
+Commits point to parent commits and trees. The trees are a "snapshot of the repository". Points at files and directories.
+
+*A commit is a code snapshot.*
+
+// .git/objects
+-- 58
+   -- <hash>
+-- 98
+   -- <hash>
+-- info
+-- pack
+
+You can't `cat` these because they are compressed binary objects.
+
+If you want to look at them:
+
+// -t: type
+// -p: print
+git cat-file -t 980a0
+git cat-file -p 980a0
+
+$ cat .git/HEAD
+ref: refs/heads/master
+
+$ cat .git/refs/heads/master
+0e5ecc480b499e431ac61f324a60a3c14318231f
+
+That number is the first commit
+
+If you create a new branch `git branch a_new_branch`
+Then look in git/refs and you'll see a file named a_new_branch
+
+* Working Area, Staging Area, Repository
+The working area files that aren't in staging and are not handled by git (aka untracked files)
+
+The staging area is how git knows what will change between the current and next commits
+
+The repository are the files git knows about. Contains all of your commits.
+
+
+* Stashing
+
+git stash 
+git stash list
+git stash show stash@{0}
+git stash apply (apply last stash)
+git stash apply stash@{0} (apply a specific stash)
+
+Advanced stashing
+Keep untracked files
+git stash --include-untracked
+
+Keep all files (even ignored ones!)
+git stash --all
+
+Name stashes for easy reference
+git stash save "WIP: making progress on foo"
+
+Start a new branch from a stash:
+git stash branch <optional branch name>
+
+Grab a single file from a stash
+git checkout <stash name> -- <filename>
+
+Remove the last stash and apply changes
+git stash pop
+tip: doesn't remove if there's a merge conflict
+
+remove the last stash
+git stash drop 
+
+remove the nth stash
+git stash drop stash@{n}
+
+remove all stashes
+git stash clear
+
+
+* References, Branches
+
+Three types of git references
+- Tags & Annotated Tags
+- Branches
+- HEAD
+
+HEAD is how git knows what branch you're on and what the next parent will be. It's a pointer and usually points to the name of the current branch. But it can commit at a commit too (detached HEAD)
+
+It moves when:
+You make a commit in the currently active branch
+When you checkout a new branch
+
+** Tags
+Lightweight tags are just a simple pointer to a commit
+
+** Annotated Tags
+Point to a commit, but store additional information. 
+
+> git tag -a v1.0 -m "Version 1.0 of my blog"
+
+display tags
+> git tag
+
+display a tag
+> git show <tag>
+
+List all tags and what commit they're pointing to
+git show-ref --tags
+
+List all the tags pointing to a commit
+git tag --points-at <commit>
+
+Looking at the tag or tagged contents
+git show <tag-name>
+
+
+** Detached State
+
+Sometimes you need to checkout a specific commit (or tag) instead of a branch. git moves the HEAD pointer to that commit. As soon as you checkout a different branch or commit, the value of HEAD will point to the new SHA. There is no reference pointing to the commits you made in a detached state.
+
+* Merging + Rebasing
+
+Git ReReRe
+
+Turn it on:
+git config rerere.enabled true
+use --global flag to enable for all projects
+
+* History + Diffs
+
+
+
+* Commit
+
+You can add a descriptive commit. Commit is in future tense.
+
+Give a short summary of why.
+
+* Git Log
+
+git log --since="yesterday"
+git log --since="2 weeks ago"
+git log -grep <regexp>
+git log --grep=mail --author=nina --since=2.weeks
+git log --dif-filter=R --stat ('r' for renamed, 'm' for modified)
+
+^ or ^n with no args is the first parent commit
+n is the nth parent commit
+~ or ~n with no args is the first commit back, following 1st parent
+n is the number of commits back, following only first parent
+
+D   E   F
+|   |   |
+B - -   C
+|       |
+A - - - -
+
+A = A^0
+B = A^  = A^1   = A~1
+C = A^2  
+D = A^^ = A^1^1 = A~2
+
+https://stackoverflow.com/questions/2221658/whats-the-difference-between-head-and-head-in-git
+
+G   H   I   J
+ \ /     \ /
+  D   E   F
+   \  |  / \
+    \ | /   |
+     \|/    |
+      B     C
+       \   /
+        \ /
+         A
+
+A =      = A^0
+B = A^   = A^1     = A~1
+C = A^2
+D = A^^  = A^1^1   = A~2
+E = B^2  = A^^2
+F = B^3  = A^^3
+G = A^^^ = A^1^1^1 = A~3
+H = D^2  = B^^2    = A^^^2  = A~2^2
+I = F^   = B^3^    = A^^3^
+J = F^2  = B^3^2   = A^^3^2
+
+
+
+* Fixing Mistakes
+
+checkout, reset, revert, clean
+
+** Checkout
+Change HEAD to point to the new branch
+Copy the commit snapshot to the staging area
+Update the working area with the branch contents
+
+However, what happens with a file?
+
+Replace the working area copy with the version from the current staging area.
+
+git checkout -- <file>
+
+** Clean
+git clean --dry-run
+git clean -d --dry-run
+git clean -d -f
+
+** Reset 
+Reset is another command that performs different actions depending on the arguments.
+- With a path
+- without a path
+- By default, git performs a git reset -mixed
+
+For commits:
+- Move the HEAD pointer, optionally modifies files
+
+For file paths:
+- Does not move the HEAD pointer, modifies files
+
+Git reset <commit> cheat sheet:
+1 Move head and current branch
+2 Reset the staging area
+3 Reset the working area
+
+--soft = 1
+--mixed = 1 & 2 (default)
+--hard = 1 & 2 & 3
+
+Undo a Git reset with ORIG_HEAD
+In case of an accidental git reset, git keeps the previous HEAD in a variable called ORIG_HEAD, to go back to the way things were: git reset ORIG_HEAD
+
+** Revert
+The safe reset.
+
+Git revert creates a new commit that introduces the opposite changes from the specified commit. The original commit stays in the repository.
+
+Tip. Use revert if you're undoing a commit that has already been shared. Note that revert does NOT change history.
+
+** Amend
+Amend is a quick and easy shortcut that lets you make changes to the previous commit.
+
+Remember commits can't be edited. A commit is referenced by the SHA of all its data. Even if if the tree the commit points to is the same, and the author is the same, the date is still different! A new commit is created.
+
+** Rebase
+Image our tech_posts and master branch have diverged. We don't want a messy merge commit in our history. We can pull in all latest changes from master, and apply our commits on top of them by changing the parent commit of our commits.
+
+So we can pull in all the latest changes from master and apply our commits on top of them by changing the parent commit of our commits.
+
+Rebase = give a commit a new parent.
+
+If you're going to rebase. Go ahead and make a new branch.
+git branch my_branch_backup
+
+NEVER REWRITE PUBLIC HISTORY
+
+* Forks, Remote Repositories
+
+* The Danger Zone
+
+* Advanced Tools
+
+* Customization - Config, Ignore, Hooks, Templates
+
+* Advanced Github: Github API

@@ -1,0 +1,26 @@
+# ignore everything
+*
+
+# allow subdirs
+!/**/
+
+!.gitignore
+
+!/elpa/**
+
+!/flow-for-emacs/**
+
+!/snippets/**
+
+!/restclient/demo.http
+
+!/org/computer/**
+!/org/emacs/**
+!/org/programming/**
+!/org/web/**
+
+
+
+
+
+
