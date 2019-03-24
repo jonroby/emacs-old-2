@@ -5,6 +5,7 @@
 !/**/
 
 !.gitignore
+!init.el
 !README.md
 
 !/elpa/**
